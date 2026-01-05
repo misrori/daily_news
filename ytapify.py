@@ -11,6 +11,7 @@ load_dotenv()
 # Már csak ez az egy kulcs kell!
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 
+
 CHANNELS = [
     "https://www.youtube.com/@IvanOnTech"
 ]
