@@ -1,0 +1,42 @@
+name: Daily YouTube Scraper
+
+on:
+  schedule:
+    # Minden nap éjfélkor (UTC) fut
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Kézi indítás lehetősége a teszteléshez
+
+permissions:
+  contents: write
+
+jobs:
+  scrape-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Scraper Script
+        env:
+          # Itt olvassa be a titkos kulcsot a GitHub Secrets-ből
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python main.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          git add data/
+          # Csak akkor commitoljon, ha van változás (ne hibázzon, ha nincs új videó)
+          git commit -m "Daily data update: $(date +'%Y-%m-%d')" || exit 0
+          git push
