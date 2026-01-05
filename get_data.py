@@ -11,14 +11,7 @@ load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 CHANNELS = [
-    "https://www.youtube.com/@IvanOnTech",
-    "https://www.youtube.com/@alessiorastani",
-    "https://www.youtube.com/@CoinBureau",
-    "https://www.youtube.com/@coingecko",
-    "https://www.youtube.com/@DataDispatch",
-    "https://www.youtube.com/@FelixFriends",
-    "https://www.youtube.com/@TomNashTV",
-    "https://www.youtube.com/@DavidCarbutt"
+    "https://www.youtube.com/@IvanOnTech"
 ]
 
 HISTORY_FILE = os.path.join("data", "processed_videos.json")
