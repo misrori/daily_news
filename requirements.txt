@@ -1,3 +1,4 @@
 python-dotenv
 google-api-python-client
 youtube-transcript-api
+apify-client
