@@ -30,7 +30,7 @@ jobs:
         env:
           # Itt olvassa be a titkos kulcsot a GitHub Secrets-ből
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-        run: python main.py
+        run: python get_data.py
 
       - name: Commit and Push changes
         run: |
