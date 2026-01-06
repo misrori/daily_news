@@ -89,14 +89,14 @@ def get_transcript_via_apify(video_url):
         print(f"  -> Apify Error: {e}")
         return None
 
-def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=30):
+def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
     since = (datetime.now(timezone.utc) - timedelta(days=days_back)).isoformat().replace("+00:00", "Z")
 
     request = youtube.search().list(
         part="snippet",
         channelId=channel_id,
         publishedAfter=since,
-        maxResults=50, 
+        maxResults=10, 
         order="date",
         type="video"
     )
