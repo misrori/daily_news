@@ -18,7 +18,8 @@ CHANNELS = [
     "https://www.youtube.com/@DataDispatch",
     "https://www.youtube.com/@FelixFriends",
     "https://www.youtube.com/@TomNashTV",
-    "https://www.youtube.com/@DavidCarbutt"
+    "https://www.youtube.com/@DavidCarbutt",
+    "https://www.youtube.com/@CTOLARSSON"
 ]
 
 HISTORY_FILE = os.path.join("data", "processed_videos.json")
