@@ -1,14 +1,20 @@
 import os
 import json
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from googleapiclient.discovery import build
 from apify_client import ApifyClient
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+MODEL_NAME = "gpt-4o-mini"
 
 CHANNELS = [
     "https://www.youtube.com/@IvanOnTech",
@@ -19,7 +25,8 @@ CHANNELS = [
     "https://www.youtube.com/@FelixFriends",
     "https://www.youtube.com/@TomNashTV",
     "https://www.youtube.com/@DavidCarbutt",
-    "https://www.youtube.com/@CTOLARSSON"
+    "https://www.youtube.com/@CTOLARSSON",
+    "https://www.youtube.com/@elliotrades_official"
 ]
 
 HISTORY_FILE = os.path.join("data", "processed_videos.json")
@@ -48,37 +55,30 @@ def get_channel_id(youtube, handle_url):
 def get_transcript_via_apify(video_url):
     """
     Fetches transcript via Apify.
-    FIX: Updated input format to use 'videoUrls' as requested by the Actor.
     """
     if not APIFY_TOKEN:
         raise Exception("APIFY_TOKEN is missing in .env!")
 
-    client = ApifyClient(APIFY_TOKEN)
+    client_apify = ApifyClient(APIFY_TOKEN)
 
-    # --- FIX IS HERE ---
-    # The Actor requires 'videoUrls' (list of strings), not 'startUrls'.
     run_input = {
         "videoUrls": [video_url],
     }
 
     try:
-        # Using the actor that triggered the error (assuming it exists and just needed correct input)
-        # If this still fails with "Actor not found", we can switch to "gentle-rent/youtube-transcripts"
-        run = client.actor("scrape-creators/best-youtube-transcripts-scraper").call(run_input=run_input)
+        run = client_apify.actor("scrape-creators/best-youtube-transcripts-scraper").call(run_input=run_input)
         
-        # Fetch results from the dataset
         text_parts = []
-        dataset_items = client.dataset(run["defaultDatasetId"]).iterate_items()
+        dataset_items = client_apify.dataset(run["defaultDatasetId"]).iterate_items()
         
         for item in dataset_items:
-            # Logic to handle different output formats
             if "text" in item:
                 text_parts.append(item["text"])
             elif "transcript" in item and isinstance(item["transcript"], list):
                 for segment in item["transcript"]:
                     if "text" in segment:
                         text_parts.append(segment["text"])
-            elif "text" in item.get("snippet", {}): # Sometimes it's nested
+            elif "text" in item.get("snippet", {}):
                  text_parts.append(item["snippet"]["text"])
         
         if not text_parts:
@@ -89,6 +89,60 @@ def get_transcript_via_apify(video_url):
     except Exception as e:
         print(f"  -> Apify Error: {e}")
         return None
+
+def summarize_transcript(title: str, transcript: str):
+    """Sends the transcript to OpenAI for summarization with direct narrative style."""
+    if not OPENAI_API_KEY:
+        print("  -> SKIP: OPENAI_API_KEY missing.")
+        return None
+
+    prompt = f"""
+Analyze the following YouTube video transcript and provide a direct analysis in BOTH Hungarian (HU) and English (EN).
+Video Title: {title}
+
+Transcript:
+{transcript[:30000]}
+
+STYLE GUIDELINES (MANDATORY):
+- Dive IMMEDIATELY into the facts and analysis. 
+- NO INTROS: Never start with "A videó...", "Ez a videó...", "Ebben a részben...", "The video...", "In this video...", "This transcript...", etc.
+- TONE: You are an expert analyst telling the reader exactly what is happening in the market and what the key takeaways are. 
+- EXAMPLE OF BAD START: "A videó bemutatja az Nvidia legújabb..."
+- EXAMPLE OF GOOD START: "Az Nvidia árfolyama brutális emelkedésbe kezdett a kínai export hírére..."
+
+Return the result as a raw JSON object with the following keys:
+{{
+  "summary_hu": "8-12 mondatos elemző összefoglaló magyarul.",
+  "summary_en": "8-12 sentence analytical summary in English.",
+  "crypto_sentiment": "Bullish, Bearish, or Neutral regarding crypto markets (always in English).",
+  "sentiment_score": 0-100 (Integer: 0 = extremely bearish, 100 = extremely bullish),
+  "key_points_hu": ["Pont 1", "Pont 2", "Pont 3"],
+  "key_points_en": ["Point 1", "Point 2", "Point 3"],
+  "main_topics": ["Topic 1", "Topic 2"]
+}}
+"""
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "You are a direct, analytical narrator who outputs only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            content = response.choices[0].message.content
+            return json.loads(content)
+        except Exception as e:
+            if "429" in str(e):
+                wait_time = (2 ** attempt) * 10
+                print(f"      Rate limited. Waiting {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            print(f"      Exception with OpenAI API: {e}")
+            break
+    return None
 
 def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
     since = (datetime.now(timezone.utc) - timedelta(days=days_back)).isoformat().replace("+00:00", "Z")
@@ -123,17 +177,25 @@ def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
             transcript_text = get_transcript_via_apify(video_url)
             
             if transcript_text:
-                new_data.append({
+                video_entry = {
                     "video_id": video_id,
                     "title": title,
                     "published_at": publish_raw,
                     "sort_date": publish_date,
                     "url": video_url,
                     "transcript": transcript_text
-                })
+                }
+
+                # SUMMARIZATION
+                print(f"  -> Summarizing with AI...")
+                summary_data = summarize_transcript(title, transcript_text)
+                if summary_data:
+                    video_entry.update(summary_data)
+                    print("  -> SUCCESS: Summary generated.")
                 
+                new_data.append(video_entry)
                 processed_ids.add(video_id)
-                print("  -> SUCCESS: Transcript downloaded (Apify).")
+                print("  -> SUCCESS: Transcript downloaded and summarized.")
             else:
                  print("  -> ERROR: Apify returned empty result (no transcript found?).")
 

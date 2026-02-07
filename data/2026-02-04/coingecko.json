@@ -5,6 +5,24 @@
         "published_at": "2026-02-04T10:30:05Z",
         "sort_date": "2026-02-04",
         "url": "https://www.youtube.com/watch?v=A7vm5nxabxs",
-        "transcript": "Heat. Heat. [music]"
+        "transcript": "Heat. Heat. [music]",
+        "summary_hu": "A videó a Bitcoin (BTC) és az Ethereum (ETH) közötti választásra összpontosít, kiemelve a két kriptovaluta közötti versenyt. A BTC hagyományosabb, míg az ETH inkább az új technológiák és decentralizált alkalmazások irányába mutat. A piac feszültsége és az új tranzakciók körüli verseny folyamatosan aktiválja a befektetői érdeklődést.",
+        "summary_en": "The video focuses on the choice between Bitcoin (BTC) and Ethereum (ETH), highlighting the competition between the two cryptocurrencies. BTC is more traditional, while ETH leans towards new technologies and decentralized applications. Market tensions and competition surrounding new transactions continuously activate investor interest.",
+        "crypto_sentiment": "Neutral",
+        "sentiment_score": 50,
+        "key_points_hu": [
+            "A BTC hagyományos megoldásokat képvisel.",
+            "Az ETH az új technológiákra és decentralizációra összpontosít.",
+            "A befektetői érdeklődés és verseny folyamatosan jelen van."
+        ],
+        "key_points_en": [
+            "BTC represents traditional solutions.",
+            "ETH focuses on new technologies and decentralization.",
+            "Investor interest and competition are ever-present."
+        ],
+        "main_topics": [
+            "Bitcoin vs Ethereum",
+            "Cryptocurrency Competition"
+        ]
     }
 ]
