@@ -170,6 +170,10 @@ def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
         if video_id in processed_ids:
             print(f"SKIPPING ({publish_date}): {title}")
             continue
+
+        if "#shorts" in title.lower():
+            print(f"SKIPPING SHORT: {title}")
+            continue
         
         print(f"Processing [{publish_date}]: {title}")
         
@@ -242,9 +246,15 @@ def check_and_fix_summaries(days_back=10):
                 continue
                 
             for video in videos:
+                title = video.get("title", "Unknown Title")
+                
+                # SKIP SHORTS in the final check too
+                if "#shorts" in title.lower():
+                    # print(f"  -> Skipping short in check: {title}")
+                    continue
+
                 # Check if summary is missing
                 if "summary_hu" not in video or not video["summary_hu"]:
-                    title = video.get("title", "Unknown Title")
                     transcript = video.get("transcript")
                     
                     if transcript:
