@@ -11,7 +11,7 @@ from openai import OpenAI
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 MODEL_NAME = "gpt-4o-mini"
@@ -204,6 +204,68 @@ def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
             
     return new_data
 
+def check_and_fix_summaries(days_back=10):
+    """
+    Checks the last X days of data for any videos missing summaries and fixes them.
+    Handles multiple videos per author per day.
+    """
+    print(f"\n--- Starting final summary check for the last {days_back} days ---")
+    
+    for i in range(days_back + 1):
+        # We use local time for date folders as per script logic elsewhere
+        date_str = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        folder_path = os.path.join("data", date_str)
+        
+        if not os.path.exists(folder_path):
+            continue
+            
+        print(f" Checking {date_str}...")
+        
+        for filename in os.listdir(folder_path):
+            if not filename.endswith(".json"):
+                continue
+                
+            file_path = os.path.join(folder_path, filename)
+            modified = False
+            
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    if not content.strip():
+                        continue
+                    videos = json.loads(content)
+            except Exception as e:
+                print(f"  -> Error reading {file_path}: {e}")
+                continue
+            
+            if not isinstance(videos, list):
+                continue
+                
+            for video in videos:
+                # Check if summary is missing
+                if "summary_hu" not in video or not video["summary_hu"]:
+                    title = video.get("title", "Unknown Title")
+                    transcript = video.get("transcript")
+                    
+                    if transcript:
+                        print(f"  -> Missing summary for: {title} ({filename})")
+                        summary_data = summarize_transcript(title, transcript)
+                        if summary_data:
+                            video.update(summary_data)
+                            modified = True
+                            print(f"     [+] Summary generated successfully.")
+                        else:
+                            print(f"     [!] Failed to generate summary.")
+                    else:
+                        print(f"  -> SKIP: No transcript for {title} (cannot summarize)")
+            
+            if modified:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(videos, f, ensure_ascii=False, indent=4)
+                print(f"  -> UPDATED: {file_path}")
+
+    print("--- Final summary check completed ---\n")
+
 def main():
     if not API_KEY:
         print("ERROR: YOUTUBE_API_KEY is missing!")
@@ -253,6 +315,9 @@ def main():
         print("\nHistory updated.")
     else:
         print("\nHistory unchanged.")
+
+    # FINAL CHECK: Ensure everything in last 10 days has summaries
+    check_and_fix_summaries(days_back=10)
 
 if __name__ == "__main__":
     main()
