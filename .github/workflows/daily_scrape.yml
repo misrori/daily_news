@@ -29,10 +29,10 @@ jobs:
       - name: Run Scraper Script
         env:
           # Itt olvassa be a titkos kulcsot a GitHub Secrets-ből
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_API_KEY_2: ${{ secrets.YOUTUBE_API_KEY_2 }}
           OPENAI: ${{ secrets.OPENAI }}
-        run: python get_data_with_apify.py
+        run: python get_data_v3.py
 
       - name: Commit and Push changes
         run: |
