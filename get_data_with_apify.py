@@ -8,7 +8,13 @@ from apify_client import ApifyClient
 from dotenv import load_dotenv
 from openai import OpenAI
 
+import logging
+
 load_dotenv()
+
+# SILENCE APAIFY LOGS
+logging.getLogger("apify_client").setLevel(logging.WARNING)
+logging.getLogger("apify").setLevel(logging.WARNING)
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI")
@@ -168,11 +174,11 @@ def get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2):
         video_url = f"https://www.youtube.com/watch?v={video_id}"
 
         if video_id in processed_ids:
-            print(f"SKIPPING ({publish_date}): {title}")
+            # print(f"SKIPPING ({publish_date}): {title}")
             continue
 
         if "#shorts" in title.lower():
-            print(f"SKIPPING SHORT: {title}")
+            # print(f"SKIPPING SHORT: {title}")
             continue
         
         print(f"Processing [{publish_date}]: {title}")
@@ -223,7 +229,7 @@ def check_and_fix_summaries(days_back=10):
         if not os.path.exists(folder_path):
             continue
             
-        print(f" Checking {date_str}...")
+        # print(f" Checking {date_str}...")
         
         for filename in os.listdir(folder_path):
             if not filename.endswith(".json"):
@@ -292,7 +298,7 @@ def main():
         
         channel_name = url.split("@")[-1]
         
-        videos = get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=14)
+        videos = get_videos_and_transcripts(youtube, channel_id, processed_ids, days_back=2)
         
         if not videos:
             print("No new videos to save.")
@@ -326,8 +332,8 @@ def main():
     else:
         print("\nHistory unchanged.")
 
-    # FINAL CHECK: Ensure everything in last 10 days has summaries
-    check_and_fix_summaries(days_back=10)
+    # FINAL CHECK: Ensure everything in last 3 days has summaries
+    check_and_fix_summaries(days_back=3)
 
 if __name__ == "__main__":
     main()
