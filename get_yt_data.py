@@ -129,7 +129,7 @@ def summarize_transcript(title: str, transcript: str):
     Video Title: {title}
 
     Transcript:
-    {transcript}
+    {transcript[:30000]}
 
     STYLE GUIDELINES (MANDATORY):
     - Dive IMMEDIATELY into the facts and analysis. 
@@ -179,7 +179,7 @@ for channel in youtube_chanel_list:
         #print(video['snippet']['title'])
         # if short video skipp
         if '#shorts' in video['snippet']['title']:
-            print (f'{video['snippet']['title']} shorts video I skipp!! \n')
+            print (f"{video['snippet']['title']} shorts video I skipp!! \n")
 
         else:
             #check if processed
