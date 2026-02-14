@@ -30,6 +30,11 @@ def get_english_transcript(url):
         "subtitleslangs": ["en"],
         "subtitlesformat": "json3",
         "quiet": True,
+        "extractor_args": {
+        "youtube": {
+            "player_client": ["android"]
+            }
+        }
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
